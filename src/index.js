@@ -1,23 +1,22 @@
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 // var MyScene = require("./MyScene");
-var asset =["asset/Field.png"];
-for(let i=1; i<12;i++){
-    asset[i]="asset/Sprite_"+2**i+".png";
+var asset = ["asset/Field.png"];
+for(let i = 1; i < 12; i++){
+    asset[i] = "asset/Sprite_" + 2 ** i + ".png";
 }
 asset.push("asset/CountField.png");
-asset.push("asset/OK.png");
-const distBTWCentTilesX=9+75;
-const distBTWCentTilesY=12+75;
+const distBTWCentTilesX = 9 + 75;
+const distBTWCentTilesY = 12 + 75;
 
-function normPos(x,y){return {x:(x+1)*distBTWCentTilesX-75/2, y: (3-y+1)*distBTWCentTilesY-75/2}};
+function normPos(x, y){return {x: (x + 1) * distBTWCentTilesX - 75 / 2, y: (3 - y + 1)*distBTWCentTilesY - 75 / 2}};
 
 
 var Tile = cc.Sprite.extend({
     ctor: function(number, x, y) {
-        this._super("asset/Sprite_"+2**number+".png");
+        this._super("asset/Sprite_" + 2 ** number + ".png");
         this.number = number;
-        this.setPosition(normPos(x,y));
+        this.setPosition(normPos(x, y));
     },
     animationCreation: function(){
         this.setScale(0.1, 0.1);
@@ -25,9 +24,9 @@ var Tile = cc.Sprite.extend({
         this.runAction(action);
     },
     animationFusion: function(){
-        this.setScale(1.1,1.1);
+        this.setScale(1.1, 1.1);
         setTimeout(()=>{
-            let action = cc.ScaleTo.create(0.4,1,1);
+            let action = cc.ScaleTo.create(0.4, 1, 1);
             this.runAction(action);
         }, 500)
     }
@@ -38,24 +37,16 @@ var BackgroundLayer = cc.Layer.extend({
         this._super();
         var size = cc.director.getWinSize();
         var field = cc.Sprite.create(asset[0]);
-        field.setPosition(size.width / 2, 365/2 + 9);              
+        field.setPosition(size.width / 2, 365 / 2 + 9);              
         this.addChild(field, 0);
         var countField = cc.Sprite.create(asset[12]);
-        countField.setPosition(size.width / 2, size.height-(68 / 2 + 18));              
+        countField.setPosition(size.width / 2, size.height - (68 / 2 + 18));              
         this.addChild(countField, 0);
-        // countText='СЧЁТ: '+this.count;
-        // var countLabel = new cc.LabelTTF(countText, "Arial", 32);
-        // countLabel.x = size.width / 2;
-        // countLabel.y = size.height-(68/2 + 22);
-        // countLabel.setFontFillColor(0, 0, 0);
-        // this.addChild(countLabel, 1);
-
     },
 });
 
 var CountLabel = cc.LabelTTF.extend({
     count: 0,
-
     ctor: function(label, fontName, fontSize, size){
         this._super(label + this.count, fontName, fontSize);
         this.x = size.width / 2-25;
@@ -64,20 +55,18 @@ var CountLabel = cc.LabelTTF.extend({
     }
 })
 
-// CountLabel.count = CountLabel.count + number * 2;
-// CountLabel.setString('СЧЁТ '+CountLabel.count);
 var TileLayer = cc.Layer.extend({
     tileArray: Array(4).fill(-1).map(x => Array(4).fill(-1)),
     freeSpace: false,
     count: 0,
     ctor: function (size) {
         this._super();
-        let tileLayer = this;   
-        this.addTile(1);
-        this.addTile(1);
+        let tileLayer = this;
         this.countLabel = new CountLabel("СЧЁТ: ", "Arial", 32, size);
-       
         this.addChild(this.countLabel, 2);
+           
+        this.addTile(1);
+        this.addTile(1);
 
         cc.eventManager.addListener({
             event: cc.EventListener.MOUSE,
@@ -93,7 +82,23 @@ var TileLayer = cc.Layer.extend({
                 if((Math.abs(diffX) > 50) || (Math.abs(diffY) > 50)){
                     tileLayer.checkMovement(diffX,diffY);
                 }
-            }
+            },
+        }, this);
+        cc.eventManager.addListener({
+            event: cc.EventListener.TOUCH_ONE_BY_ONE,
+            onTouchBegan: function(event){
+                prevX = event._x;
+                prevY = event._y;
+            },
+            onTouchEnded: function(event){
+                nextX = event._x;
+                nextY = event._y;
+                diffX = Math.abs(nextX) - Math.abs(prevX);
+                diffY = Math.abs(nextY) - Math.abs(prevY);
+                if((Math.abs(diffX) > 50) || (Math.abs(diffY) > 50)){
+                    tileLayer.checkMovement(diffX,diffY);
+                }
+            },
         }, this);
     },
 
