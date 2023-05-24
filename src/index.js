@@ -32,8 +32,9 @@ var Tile = cc.Sprite.extend({
         }, 500)
     }
 });
+
 var BackgroundLayer = cc.Layer.extend({
-    ctor: function (count){
+    ctor: function(){
         this._super();
         var size = cc.director.getWinSize();
         var field = cc.Sprite.create(asset[0]);
@@ -42,24 +43,41 @@ var BackgroundLayer = cc.Layer.extend({
         var countField = cc.Sprite.create(asset[12]);
         countField.setPosition(size.width / 2, size.height-(68 / 2 + 18));              
         this.addChild(countField, 0);
+        // countText='СЧЁТ: '+this.count;
+        // var countLabel = new cc.LabelTTF(countText, "Arial", 32);
+        // countLabel.x = size.width / 2;
+        // countLabel.y = size.height-(68/2 + 22);
+        // countLabel.setFontFillColor(0, 0, 0);
+        // this.addChild(countLabel, 1);
 
-        count='СЧЁТ: '+count;
-        var tsLabel = new cc.LabelTTF(count, "Arial", 32);
-        tsLabel.x = size.width / 2;
-        tsLabel.y = size.height-(68/2 + 22);
-        tsLabel.setFontFillColor(0, 0, 0);
-        this.addChild(tsLabel, 1);
     },
 });
 
+var CountLabel = cc.LabelTTF.extend({
+    count: 0,
+
+    ctor: function(label, fontName, fontSize, size){
+        this._super(label + this.count, fontName, fontSize);
+        this.x = size.width / 2-25;
+        this.y = size.height-(68/2 + 22+11);
+        this.setFontFillColor(0, 0, 0);
+    }
+})
+
+// CountLabel.count = CountLabel.count + number * 2;
+// CountLabel.setString('СЧЁТ '+CountLabel.count);
 var TileLayer = cc.Layer.extend({
     tileArray: Array(4).fill(-1).map(x => Array(4).fill(-1)),
     freeSpace: false,
-    ctor: function () {
+    count: 0,
+    ctor: function (size) {
         this._super();
         let tileLayer = this;   
         this.addTile(1);
         this.addTile(1);
+        this.countLabel = new CountLabel("СЧЁТ: ", "Arial", 32, size);
+       
+        this.addChild(this.countLabel, 2);
 
         cc.eventManager.addListener({
             event: cc.EventListener.MOUSE,
@@ -150,7 +168,11 @@ var TileLayer = cc.Layer.extend({
             });
         }
     },
-    
+    changeCount: function(number){
+        this.countLabel.count = this.countLabel.count + (2**number)*2;
+        this.countLabel.setString('СЧЁТ: '+ this.countLabel.count);
+    },
+
     fusionL: function(){
         for (let i = 0; i < 4; i++){
             this.tileArray[i].forEach((x,j)=>{
@@ -162,13 +184,15 @@ var TileLayer = cc.Layer.extend({
                             this.tileArray[i][k].runAction(sprite_act_mv);
                         }else{break;}
 
-                    }
+                    };
+
+                    this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
                     this.removeChild(this.tileArray[i][j+1]);
+
                     this.tileArray[i].splice(j,2,new Tile(newTileNumber, j, i));
                     this.tileArray[i].push(-1);
                     this.addChild(this.tileArray[i][j], 2);
-
                     this.tileArray[i][j].animationFusion();
                 }
             });
@@ -185,13 +209,15 @@ var TileLayer = cc.Layer.extend({
                             this.tileArray[i][k].runAction(sprite_act_mv);
                         }else{break;}
 
-                    }
+                    };
+
+                    this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
                     this.removeChild(this.tileArray[i][j-1]);
+
                     this.tileArray[i].splice(j-1, 2, new Tile(newTileNumber, j, i));
                     this.tileArray[i].unshift(-1);
                     this.addChild(this.tileArray[i][j], 2);
-                    
                     this.tileArray[i][j].animationFusion();
                     
                 }
@@ -209,17 +235,18 @@ var TileLayer = cc.Layer.extend({
                             this.tileArray[k][j].runAction(sprite_act_mv);
                         }else{break;}
 
-                    }
+                    };
+
+                    this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
                     this.removeChild(this.tileArray[i+1][j]);
+
                     this.tileArray[i][j] = new Tile(newTileNumber, j, i);
                     for (let k = i+1; k < 3; k++){
                         this.tileArray[k][j] = this.tileArray[k+1][j];
-                    }
-                    
+                    };
                     this.tileArray[3][j] = -1;
                     this.addChild(this.tileArray[i][j], 2);
-                    
                     this.tileArray[i][j].animationFusion();
                     
                 }
@@ -238,16 +265,18 @@ var TileLayer = cc.Layer.extend({
                         }else{
                             break;
                         };
-                    }
+                    };
+
+                    this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
                     this.removeChild(this.tileArray[i-1][j]);
+
                     this.tileArray[i][j] = new Tile(newTileNumber, j, i);
                     for (let k = i-1; k > 0; k--){
                         this.tileArray[k][j] = this.tileArray[k-1][j];
                     }
                     this.tileArray[0][j] = -1;
                     this.addChild(this.tileArray[i][j], 2);
-                    
                     this.tileArray[i][j].animationFusion();
                 }
             }
@@ -265,13 +294,14 @@ var TileLayer = cc.Layer.extend({
 var GameScene = cc.Scene.extend({
     onEnter:function() {
         this._super();
-        var count=0;
-        let backgroundLayer = new BackgroundLayer(count);
+        var size = cc.director.getWinSize();
+        let backgroundLayer = new BackgroundLayer();
         this.addChild(backgroundLayer, 1);
         
-        let tileLayer = new TileLayer();
+        let tileLayer = new TileLayer(size);
         tileLayer.setPosition(25, 11);
         this.addChild(tileLayer, 1);
+        
     }
 });
 window.onload = function(){
