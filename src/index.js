@@ -89,6 +89,7 @@ var TileLayer = cc.Layer.extend({
             onTouchBegan: function(touch, event){
                 prevX = touch.getLocationX();
                 prevY = touch.getLocationY();
+                return true;
             },
             onTouchEnded: function(touch, event){
                 nextX = touch.getLocationX();
@@ -100,6 +101,7 @@ var TileLayer = cc.Layer.extend({
                 }
             },
         }, this);
+        
     },
 
     searchFreePlace: function(){
