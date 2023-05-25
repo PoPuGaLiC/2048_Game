@@ -68,22 +68,22 @@ var TileLayer = cc.Layer.extend({
         this.addTile(1);
         this.addTile(1);
 
-        cc.eventManager.addListener({
-            event: cc.EventListener.MOUSE,
-            onMouseDown: function(event){
-                prevX = event._x;
-                prevY = event._y;
-            },
-            onMouseUp: function(event){
-                nextX = event._x;
-                nextY = event._y;
-                diffX = Math.abs(nextX) - Math.abs(prevX);
-                diffY = Math.abs(nextY) - Math.abs(prevY);
-                if((Math.abs(diffX) > 50) || (Math.abs(diffY) > 50)){
-                    tileLayer.checkMovement(diffX,diffY);
-                }
-            },
-        }, this);
+        // cc.eventManager.addListener({
+        //     event: cc.EventListener.MOUSE,
+        //     onMouseDown: function(event){
+        //         prevX = event._x;
+        //         prevY = event._y;
+        //     },
+        //     onMouseUp: function(event){
+        //         nextX = event._x;
+        //         nextY = event._y;
+        //         diffX = Math.abs(nextX) - Math.abs(prevX);
+        //         diffY = Math.abs(nextY) - Math.abs(prevY);
+        //         if((Math.abs(diffX) > 50) || (Math.abs(diffY) > 50)){
+        //             tileLayer.checkMovement(diffX,diffY);
+        //         }
+        //     },
+        // }, this);
         cc.eventManager.addListener({
             event: cc.EventListener.TOUCH_ONE_BY_ONE,
             onTouchBegan: function(touch, event){
