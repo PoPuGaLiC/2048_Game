@@ -17,30 +17,19 @@ var Tile = cc.Sprite.extend({
         this._super("asset/Sprite_" + 2 ** number + ".png");
         this.number = number;
         this.setPosition(normPos(x, y));
+        this.restart = 0;
     },
-    // animationCreation: function(){
-    //     this.setScale(0.1, 0.1);
-    //     this.runAction(cc.scaleTo(0.4, 1, 1));
-    // },
-    // animationFusion: function(){
-    //     this.setScale(1.1, 1.1);
-    //     this.runAction(cc.scaleTo(0.4, 1, 1));
-    // }
-    animationCreation: async function(){
+    animationCreation: function(){
         this.setScale(0.1, 0.1);
-        console.log(this)
-        return  new Promise(resolve => {
-            console.log(this)
-            this.runAction(cc.sequence([
+        return new Promise(resolve => this.runAction(cc.sequence([
             cc.scaleTo(0.4, 1, 1),
-            
             cc.callFunc(resolve),
         ]))
-        });
+        );
     },
-    animationFusion: async function(){
+    animationFusion: function(){
         this.setScale(1.1, 1.1);
-        return await new Promise(resolve => this.runAction(cc.sequence([
+        return new Promise(resolve => this.runAction(cc.sequence([
             cc.scaleTo(0.4, 1, 1),
             cc.callFunc(resolve),
         ])));
@@ -71,34 +60,50 @@ var CountLabel = cc.LabelTTF.extend({
 })
 
 var TileLayer = cc.Layer.extend({
-    tileArray: Array(4).fill(-1).map(x => Array(4).fill(-1)),
+    
     freeSpace: false,
-    count: 0,
-    ctor: function (size) {
+    ctor: async function (size) {
         this._super();
         let tileLayer = this;
+        this.tileArray = Array(4).fill(-1).map(x => Array(4).fill(-1))
+        this.count = 0;
         this.countLabel = new CountLabel("СЧЁТ: ", "Arial", 32, size);
+        
         this.addChild(this.countLabel, 2);
-           
+        // for(let i=0; i<14;i++){
+            
+        //     this.addTile(1);
+        // }
         this.addTile(1);
-        this.addTile(1);
-
+        await this.addTile(1);
         cc.eventManager.addListener({
             event: cc.EventListener.MOUSE,
+            
             onMouseDown: function(event){
                 prevX = event._x;
                 prevY = event._y;
             },
-            onMouseUp: function(event){
-                nextX = event._x;
-                nextY = event._y;
-                diffX = Math.abs(nextX) - Math.abs(prevX);
-                diffY = Math.abs(nextY) - Math.abs(prevY);
-                if((Math.abs(diffX) > 50) || (Math.abs(diffY) > 50)){
-                    tileLayer.checkMovement(diffX,diffY);
+            onMouseUp: async function(event){
+                if(prevX!=null&&prevY!=null){
+                    nextX = event._x;
+                    nextY = event._y;
+                    cc.eventManager.pauseTarget(tileLayer, true);
+                    diffX = Math.abs(nextX) - Math.abs(prevX);
+                    diffY = Math.abs(nextY) - Math.abs(prevY);
+                    prevX = null;
+                    prevY = null;
+                    if((Math.abs(diffX) > 50) || (Math.abs(diffY) > 50)){
+                        
+                        tileLayer.checkMovement(diffX,diffY)
+                    }
                 }
+                
             },
         }, this);
+        
+        
+
+        
         // cc.eventManager.addListener({
         //     event: cc.EventListener.TOUCH_ONE_BY_ONE,
         //     onTouchBegan: function(touch, event){
@@ -121,15 +126,22 @@ var TileLayer = cc.Layer.extend({
 
     searchFreePlace: function(){
         let flatTileArr = this.tileArray.flat()
-        while(true){
-            let freePlace = Math.floor(Math.random() * 16);
-            if (flatTileArr[freePlace] === -1){
-                return [Math.floor(freePlace / 4), freePlace % 4];
-            } 
-            if (flatTileArr.every(x => x === -1)) return alert("Нельзя сделать ход");   
+        if (flatTileArr.some(x => x === -1)) {
+            while(true){
+                let freePlace = Math.floor(Math.random() * 16);
+                if (flatTileArr[freePlace] === -1){
+                    return [Math.floor(freePlace / 4), freePlace % 4];
+                } 
+            }
+        } else {
+            alert("Нельзя сделать ход");
+            this.restart();
         }
     },
 
+    restart: function(){
+        cc.director.runScene(new GameScene());
+    },
     addTile: async function(start = 0){
         let [i, j] = this.searchFreePlace();
         let chance = (start === 1) ? 1 : 0.9;
@@ -138,68 +150,53 @@ var TileLayer = cc.Layer.extend({
         this.tileArray[i][j] = new Tile (numberTile, j, i); 
         this.addChild(this.tileArray[i][j], 2);
         await this.tileArray[i][j].animationCreation();
+        cc.eventManager.resumeTarget(this, true);
     },
 
-    checkMovement: function(diffX, diffY){
+    checkMovement: async function(diffX, diffY){
         let direction = Math.abs(diffX) > Math.abs(diffY) ? 
             diffX > 0 ? 'right' : 'left' : 
             diffY > 0 ? 'up' : 'down';
         switch(direction){
-            case 'left': this.movementX(0); 
+            case 'left': await this.movementX(0); await this.fusionL();
                 break;
-            case 'right': this.movementX(1); 
+            case 'right': await this.movementX(1); await this.fusionR();
                 break;
-            case 'up': this.movementY(0); 
+            case 'up': await  this.movementY(0); await this.fusionU();
                 break;
-            case 'down': this.movementY(1);
+            case 'down': await this.movementY(1); await this.fusionD();
                 break;
         }
         if (this.checkWin()){
             alert("Уровень пройден");
-            // cc.director.runScene(new GameScene());
+            this.restart();
         };
         this.addTile();
+        
     },
-
-    // wait: async function(){
-    //     return new Promise(r => setTimeout(()=>r(),2000))
-    // },
-
+    
     movementX: function(side){
+        let promiseArr = Array(this.tileArray.length);
         for (let i = 0; i < 4; i++){
             let filtered = this.tileArray[i].filter(x => x!=-1);
-            this.tileArray[i].fill(-1);
+            if (filtered !=[]){
+                this.tileArray[i].fill(-1);
             
-            filtered.forEach(async(x,j) => {
-                this.tileArray[i][(4-filtered.length)*side+j]= filtered[j];
-                console.log(this.tileArray[i][(4-filtered.length)*side+j])
-                return await new Promise(resolve => {
-                    
-                    this.tileArray[i][(4-filtered.length)*side+j].runAction(cc.sequence([
-                            cc.moveTo(0.5, cc.p(normPos((4-filtered.length)*side+j, i))),
-                            cc.callFunc(resolve),
-                        ]))
-                    console.log(this.tileArray[i][(4-filtered.length)*side+j])
-                    });
-
-                });
-
-
-            // filtered.forEach((x,j) => {
-            //     this.tileArray[i][(4-filtered.length)*side+j]= filtered[j];
-            //     let sprite_act = cc.MoveTo.create(0.5, cc.p(normPos((4-filtered.length)*side+j, i)));
-            //     this.tileArray[i][(4-filtered.length)*side+j].runAction(sprite_act);
-            // });
-            // animationCreation: async function(){
-            //     this.setScale(0.1, 0.1);
-            //     return new Promise(resolve => this.runAction(cc.sequence([
-            //         cc.scaleTo(0.4, 1, 1),
-            //         cc.callFunc(resolve),
-            //     ])));
-            // },
+                filtered.forEach((x,j) => {
+                    this.tileArray[i][(4-filtered.length)*side+j]= filtered[j];
+                    promiseArr[i+j] = new Promise(resolve => this.tileArray[i][(4-filtered.length)*side+j].runAction(cc.sequence([
+                        cc.moveTo(0.5, cc.p(normPos((4-filtered.length)*side+j, i))),
+                        cc.callFunc(resolve),
+                    ])))
+                });   
+            }
+            
         }
+        return Promise.all(promiseArr);
     },
+
     movementY: function(side){
+        let promiseArr = Array(this.tileArray.length);
         for (let i = 0; i < 4; i++){
             let filtered = [];
             for(let j = 0; j < 4; j++){
@@ -208,41 +205,45 @@ var TileLayer = cc.Layer.extend({
                     this.tileArray[j][i] = -1;
                 }
             };
+
             filtered.forEach((x,j) => {
                 this.tileArray[(4-filtered.length)*side+j][i]= filtered[j];
-                return new Promise(resolve => this.tileArray[(4-filtered.length)*side+j][i].runAction(cc.sequence([
+                promiseArr[i+j] = new Promise(resolve => this.tileArray[(4-filtered.length)*side+j][i].runAction(cc.sequence([
                     cc.moveTo(0.5, cc.p(normPos(i,(4-filtered.length)*side+j))),
                     cc.callFunc(resolve),
-                ])));
-                // let sprite_act = cc.MoveTo.create(0.5,cc.p(normPos(i,(4-filtered.length)*side+j)));
-                // this. tileArray[(4-filtered.length)*side+j][i].runAction(sprite_act);
+                ])))
             });
-           
-            // filtered.forEach((x,j) => {
-            //     this.tileArray[(4-filtered.length)*side+j][i]= filtered[j];
-            //     let sprite_act = cc.MoveTo.create(0.5,cc.p(normPos(i,(4-filtered.length)*side+j)));
-            //     this. tileArray[(4-filtered.length)*side+j][i].runAction(sprite_act);
-            // });
         }
+        return Promise.all(promiseArr);
     },
     changeCount: function(number){
         this.countLabel.count = this.countLabel.count + (2**number)*2;
         this.countLabel.setString('СЧЁТ: '+ this.countLabel.count);
     },
 
-    fusionL: function(){
+    fusionL: async function(){
         for (let i = 0; i < 4; i++){
-            this.tileArray[i].forEach((x,j)=>{
+            for (let j = 0; j < 4; j++){
                 if ((this.tileArray[i][j] != -1) && (j!=3) && (this.tileArray[i][j].number === this.tileArray[i][j+1].number)){
                     let newTileNumber = this.tileArray[i][j].number+1;
-                    for(let k = j + 1; k < 3; k++){
+                    let promiseArr = Array(4);
+                    for(let k = j + 1; k < 4; k++){
                         if(this.tileArray[i][k] != -1){
-                            let sprite_act_mv = cc.MoveTo.create(1,cc.p(normPos(k-1, i))); 
-                            this.tileArray[i][k].runAction(sprite_act_mv);
+                            promiseArr[k] = new Promise(resolve => this.tileArray[i][k].runAction(cc.sequence([
+                                cc.moveTo(0.5, cc.p(normPos(k-1, i))),
+                                cc.callFunc(resolve),
+                            ])))
                         }else{break;}
-
                     };
+                    await Promise.all(promiseArr);
+                    // for(let k = j + 1; k < 3; k++){
+                    //     if(this.tileArray[i][k] != -1){
+                    //         let sprite_act_mv = cc.MoveTo.create(1,cc.p(normPos(k-1, i))); 
+                    //         this.tileArray[i][k].runAction(sprite_act_mv);
+                    //     }else{break;}
 
+                    // };
+                    
                     this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
                     this.removeChild(this.tileArray[i][j+1]);
@@ -252,21 +253,33 @@ var TileLayer = cc.Layer.extend({
                     this.addChild(this.tileArray[i][j], 2);
                     this.tileArray[i][j].animationFusion();
                 }
-            });
+            }
         }
     },
-    fusionR: function(){
+    fusionR: async function(){
         for (let i = 0; i < 4; i++){
             for (let j = 3; j > -1; j--){
                 if ((this.tileArray[i][j] != -1) && (j!=0) && (this.tileArray[i][j].number === this.tileArray[i][j-1].number)){
                     let newTileNumber = this.tileArray[i][j].number+1;
-                    for(let k = j - 1; k > 0; k--){
-                        if(this.tileArray[i][k] != -1){
-                            let sprite_act_mv = cc.MoveTo.create(1,cc.p(normPos(k+1, i))); 
-                            this.tileArray[i][k].runAction(sprite_act_mv);
-                        }else{break;}
 
+                    let promiseArr = Array(4);
+                    for(let k = j - 1; k > -1; k--){
+                        if(this.tileArray[i][k] != -1){
+                            promiseArr[k] = new Promise(resolve =>  this.tileArray[i][k].runAction(cc.sequence([
+                                cc.moveTo(0.5, cc.p(normPos(k+1, i))),
+                                cc.callFunc(resolve),
+                            ])))
+                        }else{break;}
                     };
+                    await Promise.all(promiseArr);
+
+                    // for(let k = j - 1; k > 0; k--){
+                    //     if(this.tileArray[i][k] != -1){
+                    //         let sprite_act_mv = cc.MoveTo.create(1,cc.p(normPos(k+1, i))); 
+                    //         this.tileArray[i][k].runAction(sprite_act_mv);
+                    //     }else{break;}
+
+                    // };
 
                     this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
@@ -281,19 +294,29 @@ var TileLayer = cc.Layer.extend({
             }
         }
     },
-    fusionU: function(){
+    fusionU: async function(){
         for (let j = 0; j < 4; j++){
             for (let i = 0; i < 4; i++){
                 if ((this.tileArray[i][j] != -1) && (i!=3) && (this.tileArray[i][j].number === this.tileArray[i+1][j].number)){
                     let newTileNumber = this.tileArray[i][j].number+1;
+                    let promiseArr = Array(4);
                     for(let k = i + 1; k < 3; k++){
                         if(this.tileArray[k][j] != -1){
-                            let sprite_act_mv = cc.MoveTo.create(1,cc.p(normPos(j, k-1))); 
-                            this.tileArray[k][j].runAction(sprite_act_mv);
+                            promiseArr[k] = new Promise(resolve =>  this.tileArray[k][j].runAction(cc.sequence([
+                                cc.moveTo(0.5, cc.p(normPos(j, k-1))),
+                                cc.callFunc(resolve),
+                            ])))
                         }else{break;}
-
                     };
+                    await Promise.all(promiseArr);
+                    // for(let k = i + 1; k < 3; k++){
+                    //     if(this.tileArray[k][j] != -1){
+                    //         let sprite_act_mv = cc.MoveTo.create(1,cc.p(normPos(j, k-1))); 
+                    //         this.tileArray[k][j].runAction(sprite_act_mv);
+                    //     }else{break;}
 
+                    // };
+                    
                     this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
                     this.removeChild(this.tileArray[i+1][j]);
@@ -310,19 +333,29 @@ var TileLayer = cc.Layer.extend({
             }
         }
     },
-    fusionD: function(){
+    fusionD: async function(){
         for (let j = 0; j < 4; j++){
             for (let i = 3; i > -1; i--){
                 if ((this.tileArray[i][j] != -1) && (i!=0) && (this.tileArray[i][j].number === this.tileArray[i-1][j].number)){
                     let newTileNumber = this.tileArray[i][j].number+1;
-                    for(let k = i - 1; k > 0; k--){
+                    let promiseArr = Array(4);
+                    for(let  k = i - 1; k > 0; k--){
                         if(this.tileArray[k][j] != -1){
-                            let sprite_act_mv = cc.MoveTo.create(1, cc.p(normPos(j, k-1))); 
-                            this.tileArray[k][j].runAction(sprite_act_mv);
-                        }else{
-                            break;
-                        };
+                            promiseArr[k] = new Promise(resolve =>  this.tileArray[k][j].runAction(cc.sequence([
+                                cc.moveTo(0.5, cc.p(normPos(j, k+1))),
+                                cc.callFunc(resolve),
+                            ])))
+                        }else{break;}
                     };
+                    await Promise.all(promiseArr);
+                    // for(let k = i - 1; k > 0; k--){
+                    //     if(this.tileArray[k][j] != -1){
+                    //         let sprite_act_mv = cc.MoveTo.create(1, cc.p(normPos(j, k-1))); 
+                    //         this.tileArray[k][j].runAction(sprite_act_mv);
+                    //     }else{
+                    //         break;
+                    //     };
+                    // };
 
                     this.changeCount(this.tileArray[i][j].number);
                     this.removeChild(this.tileArray[i][j]);
@@ -349,17 +382,26 @@ var TileLayer = cc.Layer.extend({
 
 
 var GameScene = cc.Scene.extend({
-    onEnter:function() {
+    onEnter: function() {
         this._super();
         var size = cc.director.getWinSize();
-        let backgroundLayer = new BackgroundLayer();
-        this.addChild(backgroundLayer, 1);
+        this.backgroundLayer = new BackgroundLayer();
+        this.addChild(this.backgroundLayer, 1);
         
-        let tileLayer = new TileLayer(size);
-        tileLayer.setPosition(25, 11);
-        this.addChild(tileLayer, 1);
+        this.tileLayer = new TileLayer(size);
+        this.tileLayer.setPosition(25, 11);
+        this.addChild(this.tileLayer, 1);
         
-    }
+    },
+    // onExit: function(){
+    //     console.log("GGGGGG")
+    //     console.log(this.getChildrenCount())
+    //     this.tileLayer.tileArray = null;
+    //     this.backgroundLayer = null;
+    //     this.removeChild(this.backgroundLayer, 1);
+    //     this.removeChild(this.tileLayer, 1);
+    // }
+   
 });
 window.onload = function(){
     cc.game.onStart = function(){
