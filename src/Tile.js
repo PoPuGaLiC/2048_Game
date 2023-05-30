@@ -12,7 +12,6 @@ export class Tile extends cc.Sprite{
     }
     animationCreation(){
         this.setScale(0.1, 0.1);
-        
         return new Promise(resolve => this.runAction(cc.sequence([
             cc.scaleTo(0.4, 1, 1),
             cc.callFunc(resolve),

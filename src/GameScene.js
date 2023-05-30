@@ -1,14 +1,9 @@
-// var BackgroundLayer = require("./BackgroundLayer");
-// var TileLayer = require("./TileLayer");
-
 import {BackgroundLayer} from './BackgroundLayer';
 import {TileLayer} from './TileLayer';
 
 export class GameScene extends cc.Scene{
-    constructor(){
-        super();
-    }
     onEnter() {
+        super.onEnter();
         let size = cc.director.getWinSize();
         this.backgroundLayer = new BackgroundLayer();
         this.addChild(this.backgroundLayer, 1);

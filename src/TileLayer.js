@@ -30,7 +30,6 @@ export class TileLayer extends cc.Layer{
             cc.eventManager.addListener({
                 event: cc.EventListener.MOUSE,
                 onMouseDown: (event) => {
-                    console.log("dddddd")
                     this.prevX = event._x;
                     this.prevY = event._y;
                 },
