@@ -8,7 +8,7 @@ import {CountLabel} from './CountLabel';
 const distBTWCentTilesX = 9 + 75;
 const distBTWCentTilesY = 12 + 75;
 
-function normPos(x, y) {return {x: (x + 1) * distBTWCentTilesX - 75 / 2, y: (3 - y + 1)*distBTWCentTilesY - 75 / 2}};
+export function normPos(x, y) {return {x: (x + 1) * distBTWCentTilesX - 75 / 2, y: (3 - y + 1)*distBTWCentTilesY - 75 / 2}};
 
 
 export class TileLayer extends cc.Layer{
@@ -24,10 +24,13 @@ export class TileLayer extends cc.Layer{
 
         this.addTile(1);
         this.addTile(1);
+        
         if(cc.sys.capabilities.hasOwnProperty('mouse')){
+            
             cc.eventManager.addListener({
                 event: cc.EventListener.MOUSE,
                 onMouseDown: (event) => {
+                    console.log("dddddd")
                     this.prevX = event._x;
                     this.prevY = event._y;
                 },
@@ -37,19 +40,19 @@ export class TileLayer extends cc.Layer{
             }, this);
         }
         
-        if(cc.sys.capabilities.hasOwnProperty('touches')){
-            cc.eventManager.addListener({
-                event: cc.EventListener.TOUCH_ONE_BY_ONE,
-                onTouchBegan: (touch, event)=>{
-                    this.prevX = touch.getLocationX();
-                    this.prevY = touch.getLocationY();
-                    return true;
-                },
-                onTouchEnded: (touch, event)=>{
-                    this.checkMovement(touch.getLocationX(), touch.getLocationY())
-                },
-            }, this);
-        }
+        // if(cc.sys.capabilities.hasOwnProperty('touch')){
+        //     cc.eventManager.addListener({
+        //         event: cc.EventListener.TOUCH_ONE_BY_ONE,
+        //         onTouchBegan: (touch, event)=>{
+        //             this.prevX = touch.getLocationX();
+        //             this.prevY = touch.getLocationY();
+        //             return true;
+        //         },
+        //         onTouchEnded: (touch, event)=>{
+        //             this.checkMovement(touch.getLocationX(), touch.getLocationY())
+        //         },
+        //     }, this);
+        // }
     }
 
     async checkMovement(nextX, nextY){
