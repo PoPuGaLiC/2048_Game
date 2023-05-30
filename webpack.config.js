@@ -16,7 +16,8 @@ module.exports = {
       }),
       new CopyPlugin({
         patterns: [
-          { from: "cocos2d-js-v3.13", to: "dist" }
+          { from: "cocos2d-js-v3.13/*", to: "dist" },
+          { from: "assets", to: "assets" }
         ],
       }),
     ],

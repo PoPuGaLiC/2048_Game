@@ -1,8 +1,8 @@
 // var CountLabel = require("./CountLabel");
 // var Tile = require("./Tile");
 
-import * as Tile from './Tile.js';
-import * as CountLabel from './CountLabel.js';
+import {Tile} from './Tile';
+import {CountLabel} from './CountLabel';
 
 
 const distBTWCentTilesX = 9 + 75;
