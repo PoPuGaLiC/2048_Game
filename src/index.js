@@ -13,7 +13,6 @@ const COCOS_CONFIG ={
     "renderMode"    : 1,
 }
 
-
 window.onload = function(){
     cc.game.onStart = function(){
         cc.LoaderScene.preload(ASSETS, function() {

@@ -1,12 +1,13 @@
-import {normPos} from './TileLayer';
+import {ASSETS} from './assets';
+import { normXY } from './normalizedXY';
 
 export class Tile extends cc.Sprite{
     constructor(number, x, y) {
-        super("../assets/images/Sprite_" + 2 ** number + ".png");
-        this.nextX = null
-        this.nextY = null 
+        super(ASSETS[number]);
+        this.nextX = null;
+        this.nextY = null;
         this.number = number;
-        this.setPosition(normPos(x, y));
+        this.setPosition(normXY(x, y));
         this.restart = 0;
         
     }
