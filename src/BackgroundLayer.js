@@ -1,4 +1,3 @@
-
 import {ASSETS} from './assets';
 
 export class BackgroundLayer extends cc.Layer{

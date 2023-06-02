@@ -23,10 +23,10 @@ module.exports = {
     ],
     devServer: {
       static: {
-        directory: path.join(__dirname, 'dist'), // Каталог для статики
+        directory: path.join(__dirname, 'dist'), 
       },
-      open: true, // Автоматически открывать браузер
+      open: true, 
     },
   
-    mode: 'development', // Режим сборки
+    mode: 'development', 
 }

@@ -1,9 +1,6 @@
-// var CountLabel = require("./CountLabel");
-// var Tile = require("./Tile");
-
 import {Tile} from './Tile';
 import {CountLabel} from './CountLabel';
-
+import {GameScene} from './GameScene';
 
 const distBTWCentTilesX = 9 + 75;
 const distBTWCentTilesY = 12 + 75;
@@ -14,10 +11,11 @@ export function normPos(x, y) {return {x: (x + 1) * distBTWCentTilesX - 75 / 2, 
 export class TileLayer extends cc.Layer{
     constructor(size) {
         super();
-        this.anyMove = true;
         this.prevX = null;
         this.prevY = null;
-        this.tileArray = Array(4).fill(-1).map(x => Array(4).fill(-1))
+        
+        this.prevTileArray = Array(4).fill(-1).map(x => Array(4).fill(-1)).flat()
+        this.tileArray = Array(4).fill(-1).map(x => Array(4).fill(-1));
         this.count = 0;
         this.countLabel = new CountLabel("СЧЁТ: "+this.count, "Arial", 32, size);
         this.addChild(this.countLabel, 2);
@@ -26,7 +24,6 @@ export class TileLayer extends cc.Layer{
         this.addTile(1);
         
         if(cc.sys.capabilities.hasOwnProperty('mouse')){
-            
             cc.eventManager.addListener({
                 event: cc.EventListener.MOUSE,
                 onMouseDown: (event) => {
@@ -39,19 +36,19 @@ export class TileLayer extends cc.Layer{
             }, this);
         }
         
-        // if(cc.sys.capabilities.hasOwnProperty('touch')){
-        //     cc.eventManager.addListener({
-        //         event: cc.EventListener.TOUCH_ONE_BY_ONE,
-        //         onTouchBegan: (touch, event)=>{
-        //             this.prevX = touch.getLocationX();
-        //             this.prevY = touch.getLocationY();
-        //             return true;
-        //         },
-        //         onTouchEnded: (touch, event)=>{
-        //             this.checkMovement(touch.getLocationX(), touch.getLocationY())
-        //         },
-        //     }, this);
-        // }
+        if(cc.sys.capabilities.hasOwnProperty('touches')){
+            cc.eventManager.addListener({
+                event: cc.EventListener.TOUCH_ONE_BY_ONE,
+                onTouchBegan: (touch, event)=>{
+                    this.prevX = touch.getLocationX();
+                    this.prevY = touch.getLocationY();
+                    return true;
+                },
+                onTouchEnded: (touch, event)=>{
+                    this.checkMovement(touch.getLocationX(), touch.getLocationY())
+                },
+            }, this);
+        }
     }
 
     async checkMovement(nextX, nextY){
@@ -72,17 +69,30 @@ export class TileLayer extends cc.Layer{
 
     searchFreePlace(){
         let flatTileArr = this.tileArray.flat();
-        if (flatTileArr.some(x => x === -1)) {
-            while(true){
-                let freePlace = Math.floor(Math.random() * 16);
-                if (flatTileArr[freePlace] === -1){
-                    return [Math.floor(freePlace / 4), freePlace % 4];
-                } 
-            }
-        } else {
-            alert("Нельзя сделать ход");
-            this.restart();
+        while(true){
+            let freePlace = Math.floor(Math.random() * 16);
+            if (flatTileArr[freePlace] === -1){
+                return [Math.floor(freePlace / 4), freePlace % 4];
+            } 
         }
+    }
+
+    checkGameOver(){
+        if (this.tileArray.flat().every(x => x != -1)){
+            for(let i=0;i<4;i++){
+                for(let j=0;j<4;j++){
+                    switch(this.tileArray[i][j]?.number){
+                        case ((i>1) ? this.tileArray[i-1][j]?.number : null):
+                        case ((i<3) ? this.tileArray[i+1][j]?.number  : null):
+                        case ((j>1) ? this.tileArray[i][j-1]?.number : null):  
+                        case ((j<3) ? this.tileArray[i][j+1]?.number : null):
+                            return false;
+                            
+                    }
+                }
+            }
+            return true;
+        } else return false;
     }
 
     restart(){
@@ -101,25 +111,34 @@ export class TileLayer extends cc.Layer{
     }
 
     async movement(diffX, diffY){
+        this.prevTileArray = this.tileArray.flat();
         let direction = Math.abs(diffX) > Math.abs(diffY) ? 
             diffX > 0 ? 'right' : 'left' : 
             diffY > 0 ? 'up' : 'down';
         switch(direction){
-            case 'left': this.movementX(0); this.fusionMovL(); await this.movementAnimation(); this.fusionL();
+            case 'left': this.movementX(0); this.fusionMovL(); await this.movementAnimation(); await this.fusionL();
                 break;
-            case 'right': this.movementX(1); this.fusionMovR(); await this.movementAnimation(); this.fusionR();
+            case 'right': this.movementX(1); this.fusionMovR(); await this.movementAnimation(); await this.fusionR();
                 break;
-            case 'up': this.movementY(0); this.fusionMovU(); await this.movementAnimation(); this.fusionU();
+            case 'up': this.movementY(0); this.fusionMovU(); await this.movementAnimation(); await this.fusionU();
                 break;
-            case 'down': this.movementY(1); this.fusionMovD(); await this.movementAnimation(); this.fusionD();
+            case 'down': this.movementY(1); this.fusionMovD(); await this.movementAnimation(); await this.fusionD();
                 break;
         }
+        if ((this.tileArray.flat().some((x,j) => x!=this.prevTileArray[j]))&&this.tileArray.flat().some(x => x===-1)){
+            await this.addTile();
+        };
+
         if (this.checkWin()){
             alert("Уровень пройден");
             this.restart();
         };
-        if (this.anyMove) this.addTile();
-        this.anyMove = true;
+        
+        if (this.checkGameOver()) {
+            alert("Нельзя сделать ход");
+            this.restart();
+        };
+        
     }
 
     movementAnimation(){
@@ -127,17 +146,13 @@ export class TileLayer extends cc.Layer{
         for (let i = 0; i < 4; i++){
             for(let j = 0; j < 4; j++){
                 if(this.tileArray[i][j] != -1){
-                    let normNext = normPos(this.tileArray[i][j].nextX,this.tileArray[i][j].nextY);
-                    if((Math.round(this.tileArray[i][j].x) != Math.round(normNext.x))||(Math.round(this.tileArray[i][j].y) != Math.round(normNext.y))){
-                        promiseArr[4*i+j] = new Promise(resolve => this.tileArray[i][j].runAction(cc.sequence([
-                            cc.moveTo(0.2, cc.p(normPos(this.tileArray[i][j].nextX, this.tileArray[i][j].nextY))),
-                            cc.callFunc(resolve),
-                        ])));
-                    };
+                    promiseArr[4*i+j] = new Promise(resolve => this.tileArray[i][j].runAction(cc.sequence([
+                        cc.moveTo(0.2, cc.p(normPos(this.tileArray[i][j].nextX, this.tileArray[i][j].nextY))),
+                        cc.callFunc(resolve),
+                    ])));
                 };
             };
         };
-        if (promiseArr.every(x => x === null)) this.anyMove = false;
         return Promise.all(promiseArr);
     }
 
