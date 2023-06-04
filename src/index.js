@@ -3,22 +3,24 @@ var ctx = canvas.getContext("2d");
 import {GameScene} from './GameScene';
 import {ASSETS} from './assets';
 
-const COCOS_CONFIG ={
+const COCOS_CONFIG = {
     "debugMode"     : 1,
-    "showFPS"       :  false,
+    "showFPS"       : false,
     "frameRate"     : 60,
     "id"            : "canvas",
-    "width"           : "400px",
-    "height"           : "485px",
-    "renderMode"    : 1,
-}
+    "jsList"        : [],
+    "renderMode"    : 2,
+    "platform"      : 'mobile'
+};
 
-window.onload = function(){
-    cc.game.onStart = function(){
+window.addEventListener("load", function() {
+    cc.game.onStart = function() {
         cc.LoaderScene.preload(ASSETS, function() {
-            cc.director.runScene(new GameScene());
-        }, this);
-        
+            cc.director.runScene( new GameScene() );
+        });
     };
     cc.game.run(COCOS_CONFIG);
-};
+}) 
+    
+    
+

@@ -1,7 +1,7 @@
 import {BackgroundLayer} from './BackgroundLayer';
 import {TileLayer} from './TileLayer';
 
-export class GameScene extends cc.Scene{
+export class GameScene extends cc.Scene {
     onEnter(){
         super.onEnter();
         const size = cc.director.getWinSize();
@@ -11,5 +11,5 @@ export class GameScene extends cc.Scene{
         this.tileLayer = new TileLayer(size);
         this.tileLayer.setPosition(25, 11);
         this.addChild(this.tileLayer, 1);
-    }
+    };
 };
