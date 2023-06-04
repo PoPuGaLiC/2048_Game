@@ -1,8 +1,0 @@
-{
-    "debugMode"     : 1,
-    "showFPS": false,
-    "frameRate"     : 60,
-    "id"            : "canvas",
-    "renderMode"    : 1,
-    "jsList": ["src/index.js","src/MyScene.js"]
-}
